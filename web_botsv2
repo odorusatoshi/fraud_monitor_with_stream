@@ -171,6 +171,7 @@
     <panel>
       <title>ボットによって生成されたアカウントを特定する</title>
       <table>
+        <title>同じメールドメインを利用したアカウントを列挙し、ボットが機械生成した疑いのあるアカウントを抽出</title>
         <search>
           <query>index=botsv2 sourcetype=stream:http
 | rex field=cookie "form_key=(?&lt;session_value&gt;\w+)"
@@ -189,7 +190,6 @@
         <option name="dataOverlayMode">none</option>
         <option name="drilldown">none</option>
         <option name="percentagesRow">false</option>
-        <option name="refresh.display">progressbar</option>
         <option name="rowNumbers">false</option>
         <option name="totalsRow">false</option>
         <option name="wrap">true</option>
