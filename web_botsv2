@@ -1,0 +1,207 @@
+<form theme="dark">
+  <label>(BOTSv2) SplunkWebサーバへの不正ログイン監視（stream:http）</label>
+  <description>2017/8/1~2017/8/31</description>
+  <fieldset submitButton="false">
+    <input type="time" token="field1">
+      <label></label>
+      <default>
+        <earliest>1501513200</earliest>
+        <latest>1504191600</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>srcのgeolocation情報をマップング</title>
+      <map>
+        <title>サービス提供外の国、要注意エリアからのアクセス傾向監視</title>
+        <search>
+          <query>index=botsv2 sourcetype="stream:http" source="stream:http" 
+| rex field=form_data "login\[username\]=(?&lt;web_user&gt;[^&amp;|^$]+)" 
+| rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$]+)" 
+|search web_user=*@*
+|iplocation src
+| stats count by Country
+| geom geo_countries featureIdField=Country</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="drilldown">none</option>
+        <option name="mapping.choroplethLayer.colorBins">5</option>
+        <option name="mapping.choroplethLayer.colorMode">auto</option>
+        <option name="mapping.choroplethLayer.maximumColor">0xaf575a</option>
+        <option name="mapping.choroplethLayer.minimumColor">0x62b3b2</option>
+        <option name="mapping.choroplethLayer.neutralPoint">0</option>
+        <option name="mapping.choroplethLayer.shapeOpacity">0.75</option>
+        <option name="mapping.choroplethLayer.showBorder">1</option>
+        <option name="mapping.data.maxClusters">100</option>
+        <option name="mapping.legend.placement">bottomright</option>
+        <option name="mapping.map.center">(35.75,142.21)</option>
+        <option name="mapping.map.panning">1</option>
+        <option name="mapping.map.scrollZoom">0</option>
+        <option name="mapping.map.zoom">2</option>
+        <option name="mapping.markerLayer.markerMaxSize">50</option>
+        <option name="mapping.markerLayer.markerMinSize">10</option>
+        <option name="mapping.markerLayer.markerOpacity">0.8</option>
+        <option name="mapping.showTiles">1</option>
+        <option name="mapping.tileLayer.maxZoom">10</option>
+        <option name="mapping.tileLayer.minZoom">0</option>
+        <option name="mapping.tileLayer.tileOpacity">1</option>
+        <option name="mapping.type">choropleth</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="trellis.enabled">0</option>
+        <option name="trellis.scales.shared">1</option>
+        <option name="trellis.size">medium</option>
+      </map>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>不正入手したログインIDとパスワードのペアを標的サイトで試す</title>
+      <table>
+        <title>パスワードリスト型攻撃監視</title>
+        <search>
+          <query>index=botsv2 sourcetype="stream:http"
+| rex field=form_data "login\[username\]=(?&lt;web_user&gt;[^&amp;|^$]+)" 
+| rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$]+)" 
+|search web_user=*@*
+|iplocation src
+|stats count values(web_user) by src Country
+|sort - count</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="action">
+          <colorPalette type="map">{"allowed":#53A051,"blocked":#DC4E41}</colorPalette>
+        </format>
+        <format type="color" field="Country">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="count">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <title>パスワードを固定して異なるIDにログイン試行</title>
+      <table>
+        <title>リバースブルートフォース攻撃監視</title>
+        <search>
+          <query>index=botsv2 sourcetype="stream:http" 
+| rex field=form_data "login\[username\]=(?&lt;web_user&gt;[^&amp;|^$]+)" 
+| rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$]+)" 
+|search web_user=*@*
+|iplocation src
+|stats  values(web_user) dc(web_user) count values(src) by web_pword
+|sort - dc(web_user)</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="dc(user)">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="count">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+        <format type="color" field="values(action)">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <title>同じIDに対してパスワードを変えて成功するまで繰り返す</title>
+      <table>
+        <title>パスワードリスト型攻撃（ブルートフォース攻撃）監視</title>
+        <search>
+          <query>index=botsv2 sourcetype="stream:http"
+| rex field=form_data "login\[username\]=(?&lt;web_user&gt;[^&amp;|^$]+)" 
+| rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$]+)" 
+|search web_user=*@*
+|iplocation src
+|stats dc(web_pword) as dc values(web_pword) by web_user
+|sort - dc</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">5</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="values(action)">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="count">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>ボットによって生成されたアカウントを特定する</title>
+      <table>
+        <search>
+          <query>index=botsv2 sourcetype=stream:http
+| rex field=cookie "form_key=(?&lt;session_value&gt;\w+)"
+| rex field=form_data "login\[username\]=(?&lt;web_user&gt;[^&amp;|^$$]+)" 
+| rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$$]+)" 
+|search web_user=*@*
+| rex field=web_user "(?&lt;tld&gt;([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$$)"
+| table web_user tld web_pword
+| stats list(web_user) count by tld
+| sort - count</query>
+          <earliest>$field1.earliest$</earliest>
+          <latest>$field1.latest$</latest>
+          <sampleRatio>1</sampleRatio>
+        </search>
+        <option name="count">2</option>
+        <option name="dataOverlayMode">none</option>
+        <option name="drilldown">none</option>
+        <option name="percentagesRow">false</option>
+        <option name="refresh.display">progressbar</option>
+        <option name="rowNumbers">false</option>
+        <option name="totalsRow">false</option>
+        <option name="wrap">true</option>
+        <format type="color" field="tld">
+          <colorPalette type="sharedList"></colorPalette>
+          <scale type="sharedCategory"></scale>
+        </format>
+        <format type="color" field="count">
+          <colorPalette type="minMidMax" maxColor="#DC4E41" minColor="#FFFFFF"></colorPalette>
+          <scale type="minMidMax"></scale>
+        </format>
+      </table>
+    </panel>
+  </row>
+</form>
