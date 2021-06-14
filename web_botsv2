@@ -179,7 +179,6 @@
 | rex field=form_data "login\[password\]=(?&lt;web_pword&gt;[^&amp;|^$$]+)" 
 |search web_user=*@*
 | rex field=web_user "(?&lt;tld&gt;([a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.)+[a-zA-Z]{2,}$$)"
-| table web_user tld web_pword
 | stats list(web_user) count by tld
 | sort - count</query>
           <earliest>$field1.earliest$</earliest>
